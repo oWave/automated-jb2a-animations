@@ -29,5 +29,9 @@
     "build": "vite build",
     "dev": "vite",
     "eslint": "eslint ."
+  },
+  "prettier": {
+    "tabWidth": 4,
+    "semi": true
   }
 }
