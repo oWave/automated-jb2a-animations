@@ -172,11 +172,9 @@ function runPF2eWeapons(data) {
 }
 
 async function runPF2eSpells(data) {
-    debugger;
     const msg = data.workflow;
     const item = data.item;
     const playOnDamage = data.playOnDamage;
-    const isDamageRoll = msg.isDamageRoll;
 
     if (item.isVariant) {
         data.isVariant = true;
@@ -241,15 +239,6 @@ function itemHasDamage(item) {
     }
     let damage = item.system?.damage?.value || item.system?.damageRolls || {};
     return Object.keys(damage).length;
-}
-
-/**
- *
- * @param {Object} item
- * @returns {String} Weapon's base type
- */
-function getWeaponBaseType(item) {
-    return item.baseType;
 }
 
 function checkOutcome(input) {
