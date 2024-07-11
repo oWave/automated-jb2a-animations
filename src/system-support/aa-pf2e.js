@@ -12,31 +12,43 @@ const PF2E_SIZE_TO_REACH = {
     grg: 15,
 };
 
+async function handleMessage(msg) {
+    if (msg.user.id !== game.user.id) { return };
+    const playOnDmg = game.settings.get("autoanimations", "playonDamageCore")
+    let compiledData = await getRequiredData({
+        item: msg.item,
+        itemId: msg.flags.pf2e?.origin?.uuid,
+        token: msg.token?.object,
+        tokenId: msg.speaker?.token,
+        actorId: msg.speaker?.actor,
+        workflow: msg,
+        playOnDamage: playOnDmg,
+        bypassTemplates: true,
+    })
+    if (compiledData.item?.type === "effect" || compiledData.item?.type === "condition") {
+        debug ("This is a Condition or Effect, exiting main workflow")
+        return;
+    }
+    if (!compiledData.item) {
+        debug("No Item Found, exiting main Workflow")
+        return;
+    }
+    compiledData.hitTargets = checkOutcome(compiledData);
+    runPF2e(compiledData)
+}
+
 export function systemHooks() {
-    Hooks.on("createChatMessage", async (msg) => {
-        if (msg.user.id !== game.user.id) { return };
-        const playOnDmg = game.settings.get("autoanimations", "playonDamageCore")
-        let compiledData = await getRequiredData({
-            item: msg.item,
-            itemId: msg.flags.pf2e?.origin?.uuid,
-            token: msg.token?.object,
-            tokenId: msg.speaker?.token,
-            actorId: msg.speaker?.actor,
-            workflow: msg,
-            playOnDamage: playOnDmg,
-            bypassTemplates: true,
-        })
-        if (compiledData.item?.type === "effect" || compiledData.item?.type === "condition") {
-            debug ("This is a Condition or Effect, exiting main workflow")
-            return;
-        }
-        if (!compiledData.item) {
-            debug("No Item Found, exiting main Workflow")
-            return;
-        }
-        compiledData.hitTargets = checkOutcome(compiledData);
-        runPF2e(compiledData)
+    const shouldUseDiceSoNiceHook = () => game.modules.get("dice-so-nice")?.active && !game.settings.get("dice-so-nice", "immediatelyDisplayChatMessages")
+
+    Hooks.on("createChatMessage", (msg) => {
+       if (!shouldUseDiceSoNiceHook()) handleMessage(msg)
     });
+    Hooks.on("diceSoNiceRollComplete", (msgId) => {
+        if (!shouldUseDiceSoNiceHook) return
+        const msg = game.messages.get(msgId)
+        if (msg) handleMessage(msg)
+    })
+
     Hooks.on("createMeasuredTemplate", async (template, data, userId) => {
         if (userId !== game.user.id) { return };
         let compiledData = await getRequiredData({
